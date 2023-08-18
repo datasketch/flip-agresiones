@@ -1,0 +1,70 @@
+---
+var_viz:
+  show: true
+  input_type: selectizeInput
+  input_params:
+    label: Variable a visualizar
+    choices: var_opts()
+fechaId:
+  show: true
+  input_type: dateRangeInput
+  input_params:
+    label: ' '
+    start: fecha_min()
+    end: fecha_max()
+    min: fecha_min()
+    max: fecha_max()
+    startLabel: Fecha inicio
+    endLabel: Fecha final
+deptosId:
+  show: true
+  show_if:
+    show_deptos():
+      equals: true
+  input_type: pickerInput
+  input_params:
+    label: Departamentos
+    choices: deptos_opts()
+    multiple: true
+    options: pickerOpts()
+agresionId:
+  show: true
+  input_type: pickerInput
+  input_params:
+    label: Tipo de agresión
+    choices: agresion_opts()
+    multiple: true
+    options: pickerOpts()
+generoId:
+  show: true
+  input_type: radioButtons
+  input_params:
+    label: Género
+    choices: genero_opts()
+autorId:
+  show: true
+  input_type: pickerInput
+  input_params:
+    label: Presunto autor
+    choices: autor_opts()
+    multiple: true
+    options: pickerOpts()
+alertaId:
+  show: true
+  input_type: toggleSwitchInput
+  input_params:
+    label: Alerta de género
+    on_label: Sí
+    off_label: ' '
+    value: false
+virtualId:
+  show: true
+  input_type: toggleSwitchInput
+  input_params:
+    label: Agresión por internet
+    on_label: Sí
+    off_label: ' '
+    value: false
+
+
+
