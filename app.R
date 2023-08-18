@@ -14,6 +14,17 @@ library(ltgeo)
 # dsvizopts bff1582f4b6e17600bf92937adf100270c42b91d
 # homodatum 6993e3f907579fc72cbbf605d1dd1184330f451b
 Sys.setenv(OPENSSL_CONF="/dev/null")
+
+quitar_acentos <- function(s) {
+  s <- chartr("áéíóúÁÉÍÓÚ", "aeiouAEIOU", s)
+  s <- chartr("àèìòùÀÈÌÒÙ", "aeiouAEIOU", s)
+  s <- chartr("âêîôûÂÊÎÔÛ", "aeiouAEIOU", s)
+  s <- chartr("äëïöüÄËÏÖÜ", "aeiouAEIOU", s)
+  s <- chartr("ãõñÃÕÑ", "aonAON", s)
+  s <- gsub("ç", "c", s)
+  s <- gsub("Ç", "C", s)
+  return(s)
+}
 #source("get-data.R")
 ui <-  fluidPage(
   tags$head(
@@ -76,7 +87,7 @@ ui <-  fluidPage(
 server <- function(input, output, session) {
 
   data <- reactive({
-    read_csv("data/agresiones.csv")
+    read_csv("https://raw.githubusercontent.com/datasketch/flip-agresiones/main/data/agresiones.csv")
   })
 
 
@@ -94,7 +105,7 @@ server <- function(input, output, session) {
                       "alerta_genero", "genero", "cargo"),
                label = c("Departamento", "Fecha",
                          "Presunto agresor", "Tipo de agresión", "Agresión virtual",
-                         "Alerta previa de género", "Género de la víctima", "Cargo o profesión de la víctima"),
+                         "Violencia basada en género", "Género de la víctima", "Cargo o profesión de la víctima"),
                clasificacion = c("Ubicación y tiempo del evento", "Ubicación y tiempo del evento",
                                  "Detalles del evento", "Detalles del evento", "Detalles del evento",
                                  "Información de la víctima", "Información de la víctima", "Información de la víctima"))
@@ -103,12 +114,7 @@ server <- function(input, output, session) {
   var_opts <- reactive({
     req(var_dic())
     df <- var_dic()
-    organized_list <- lapply(unique(df$clasificacion), function(classif) {
-      subset_df <- df |> filter(clasificacion %in% classif)
-      setNames(as.list(subset_df$id), subset_df$label)
-    })
-    names(organized_list) <- unique(df$clasificacion)
-    organized_list
+    setNames(df$id, df$label)
   })
 
   show_deptos <- reactive({
@@ -131,6 +137,17 @@ server <- function(input, output, session) {
       `deselect-all-text` = "Ninguno",
       `select-all-text` = "Todos",
       title = "Todos"
+    )
+  })
+
+  pickerOptsAdd <- reactive({
+    list(
+      `live-search`=TRUE,
+      `actions-box` = TRUE,
+      `deselect-all-text` = "Ninguno",
+      `select-all-text` = "Todos",
+      title = "Todos"
+
     )
   })
 
@@ -259,6 +276,14 @@ server <- function(input, output, session) {
                                        agg = "count",
                                        group_var = input$var_viz,
                                        percentage = TRUE, percentage_name = "porcentaje")
+
+    if (input$var_viz == "sucedio_en_internet") {
+      df <- df |> filter(sucedio_en_internet != "N/A")
+    }
+    if (input$var_viz == "alerta_genero") {
+      df <- df |> filter(alerta_genero != "N/A")
+    }
+
     dic <- var_dic() |> filter(id %in% input$var_viz)
     df$..labels <- paste0(dic$label, ": ", df[[1]], "<br/>
                          Conteo: ", df[[2]], " (", round(df[[3]], 2), "%)")
@@ -403,8 +428,8 @@ server <- function(input, output, session) {
     req(data_filter())
     if (nrow(data_filter()) == 0) return()
     df <- data_filter()
-    df <- df[, c("fecha_agresion", "presunto_autor", "sucedio_en_internet",
-                 "tipo_agresion","departamento", "alerta_genero", "genero","cargo")]
+    df <- df[, c( "presunto_autor", "sucedio_en_internet",
+                 "tipo_agresion","departamento", "alerta_genero", "genero")]
     df
   })
 
@@ -421,7 +446,6 @@ server <- function(input, output, session) {
                               scrollX = T,
                               fixedColumns = TRUE,
                               fixedHeader = TRUE,
-                              scrollY = "500px",
                               autoWidth = TRUE
                             ))
     dtable
@@ -481,6 +505,7 @@ server <- function(input, output, session) {
     if (is.null(input$lflt_viz_shape_click)) return()
     deptos_mapa <- quitar_acentos(input$lflt_viz_shape_click$id)
     deptos_mapa[deptos_mapa == "BOGOTA, D.C."] <- "BOGOTA"
+    deptos_mapa[deptos_mapa == "NARINO"] <- "NARIÑO"
     deptos_mapa[deptos_mapa == "ARCHIPIELAGO DE SAN ANDRES, PROVIDENCIA Y SANTA CATALINA"] <- toupper("San Andres y Providencia")
     click_info$id <- deptos_mapa
   })

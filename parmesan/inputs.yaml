@@ -1,7 +1,7 @@
 ---
 var_viz:
   show: true
-  input_type: selectizeInput
+  input_type: radioButtons
   input_params:
     label: Variable a visualizar
     choices: var_opts()
@@ -34,7 +34,7 @@ agresionId:
     label: Tipo de agresión
     choices: agresion_opts()
     multiple: true
-    options: pickerOpts()
+    options: pickerOptsAdd()
 generoId:
   show: true
   input_type: radioButtons
