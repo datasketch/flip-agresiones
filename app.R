@@ -62,6 +62,7 @@ ui <-  fluidPage(
                                uiOutput("descargas")
                            )),
                        div(class = "viz-nucleo",
+                           verbatimTextOutput("test"),
                            uiOutput("viz_view")
                        )
                   )
@@ -87,6 +88,7 @@ ui <-  fluidPage(
 server <- function(input, output, session) {
 
   data <- reactive({
+    #read_csv("data/agresiones.csv")
     read_csv("https://raw.githubusercontent.com/datasketch/flip-agresiones/main/data/agresiones.csv")
   })
 
@@ -207,6 +209,56 @@ server <- function(input, output, session) {
                   env = environment())
 
 
+  dic_inputs <- reactive({
+    data.frame(id = c("fechaId",
+                      "deptosId",
+                      "agresionId",
+                      "generoId",
+                      "autorId",
+                      "alertaId",
+                      "virtualId"),
+               label = c("Fecha",
+                         "Departamento",
+                         "Tipo de agresión",
+                         "Género",
+                         "Presunto autor",
+                         "Violencia basada en género",
+                         "Agresión por internet"))
+  })
+
+  caption_text <- reactive({
+    req(dic_inputs())
+    req(input$var_viz)
+    dic <- dic_inputs()
+    htmltools::HTML(paste0(
+      lapply(1:nrow(dic), function(i) {
+        tx <- ""
+        input_change <- input[[dic$id[i]]]
+        if (input$var_viz == "departamento") {
+          if (dic$id[i] == "deptosId") input_change <- NULL
+        }
+        if (dic$id[i] == "fechaId") input_change <- NULL
+
+        if (dic$id[i] == "alertaId") {
+          if (input_change) {
+            input_change <- "Sí"
+          } else {
+            input_change <- NULL
+          }
+        }
+        if (dic$id[i] == "virtualId") {
+          if (input_change) {
+            input_change <- "Sí"
+          } else {
+            input_change <- NULL
+          }
+        }
+        if (!is.null(input_change)) {
+          tx <- paste0("<b>", dic$label[i], ": </b>", input_change, "</br>", collapse = "")
+        }
+        tx
+      }), collapse = ""))
+  })
 
   list_inputs <- reactive({
     input_genero <- input$generoId
@@ -383,7 +435,7 @@ server <- function(input, output, session) {
         map_tiles = "CartoDB",
         map_zoom_snap = 0.25,
         map_zoom_delta = 0.25,
-        palette_colors = c("#FFF37A", "#FF5100"),
+        palette_colors = c("#FFF37A", "#FF5100", "red"),
         map_min_zoom = 5.25,
         map_max_zoom = 12
       )
@@ -396,11 +448,29 @@ server <- function(input, output, session) {
 
 
   viz_down <- reactive({
+    req(actual_but$active)
+    if (actual_but$active == "table") return()
     req(data_viz())
     req(viz_func())
-    suppressWarnings(
+    hc <- suppressWarnings(
       do.call(eval(parse(text = viz_func())), viz_opts())
     )
+    if (actual_but$active != "map") {
+      if (!is.null(caption_text())) {
+        hc <- hc  |>
+          hc_legend( verticalAlign = "top" ) |>
+          hc_caption(text = caption_text())
+      }
+    } else {
+      hc <- hc |>
+        addControl(title_viz(), position = "topleft", className="map-title") |>
+        leaflet::setView(lng = -74.29, lat = 3.57, 4)
+      if (!is.null(caption_text())) {
+        hc <- hc |>
+          addControl(caption_text(), position = "bottomright")
+      }
+    }
+    hc
   })
 
 
@@ -409,8 +479,7 @@ server <- function(input, output, session) {
     req(actual_but$active)
     req(data_viz())
     if (actual_but$active %in% c("table", "map")) return()
-    h <- viz_down() |>
-      hc_legend( verticalAlign = "top" )
+    h <- viz_down()
     h
   })
 
@@ -418,9 +487,7 @@ server <- function(input, output, session) {
     req(actual_but$active)
     req(data_viz())
     if (!actual_but$active %in% c("map")) return()
-    viz_down() |>
-      addControl(title_viz(), position = "topleft", className="map-title") |>
-      leaflet::setView(lng = -74.29, lat = 3.57, 4)
+    viz_down()
   })
 
 
@@ -429,7 +496,7 @@ server <- function(input, output, session) {
     if (nrow(data_filter()) == 0) return()
     df <- data_filter()
     df <- df[, c( "presunto_autor", "sucedio_en_internet",
-                 "tipo_agresion","departamento", "alerta_genero", "genero")]
+                  "tipo_agresion","departamento", "alerta_genero", "genero")]
     df
   })
 
@@ -574,7 +641,7 @@ server <- function(input, output, session) {
                     data_labels_show = TRUE,
                     data_labels_align = 'middle',
                     palette_colors = c( "#46B9F3"),
-                    title = "Cantidad de violaciones a la libertad de prensa registradas en Colombia por género",
+                    title = "Cantidad de violaciones a la libertad de prensa registradas en Colombia por género de la víctima",
                     title_size = 10) |>
       hc_exporting(
         enabled = TRUE,
@@ -790,10 +857,10 @@ server <- function(input, output, session) {
 
   })
 
-  output$test <- renderPrint({
-    print(click_info$id)
-    data_click_tree()
-  })
+  # output$test <- renderPrint({
+  #   print(click_info$id)
+  #   data_click_tree()
+  # })
 
 
 

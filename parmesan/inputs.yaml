@@ -53,7 +53,7 @@ alertaId:
   show: true
   input_type: toggleSwitchInput
   input_params:
-    label: Alerta de género
+    label: Violencia basada en género
     on_label: Sí
     off_label: ' '
     value: false
