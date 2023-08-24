@@ -40,7 +40,7 @@ result$cargo[is.na(result$cargo)] <- "N/A"
 result$presunto_autor <- case_match(result$presunto_autor,
                                     "Delincuencia común" ~ "Delincuencia Común",
                                     .default = result$presunto_autor)
-
+result$presunto_autor[is.na(result$presunto_autor)] <- "N/A"
 num_na <- sum(is.na(result$id))
 result$id[is.na(result$id)] <- paste0("id_", sample.int(1e9, num_na))
 func_paste <- function(x) paste(unique(x), collapse = ';')

@@ -16,6 +16,7 @@ fechaId:
     max: fecha_max()
     startLabel: Fecha inicio
     endLabel: Fecha final
+    locale: es
 deptosId:
   show: true
   show_if:

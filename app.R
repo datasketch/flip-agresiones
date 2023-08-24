@@ -393,7 +393,7 @@ server <- function(input, output, session) {
     req(data_viz())
     if (nrow(data_viz()) == 0) return()
     dic <- var_dic() |> filter(id %in% names(data_viz())[1])
-    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", dic$label)
+    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", tolower(dic$label))
     title_viz
   })
 
