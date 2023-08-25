@@ -39,6 +39,10 @@ label {
     padding: 0 2rem;
 }
 
+.panel-filters {
+  height: 500px;
+ overflow: auto;
+}
 
 .top-malibu {
     border-top: 0px;

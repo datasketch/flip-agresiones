@@ -44,9 +44,9 @@ ui <-  fluidPage(
       div(class = "layout-panels",
           div(class = "app-container",
               div(class = "panel top-malibu",
-                  div (class = "panel-body",
+                  div (class = "panel-body panel-filters",
                        uiOutput("controls")
-                  ),
+                       ),
                   div(class="footer",
                       tags$a(
                         img(src= 'img/ds-logo.svg', align = "left", width = 100)))
@@ -62,7 +62,7 @@ ui <-  fluidPage(
                                uiOutput("descargas")
                            )),
                        div(class = "viz-nucleo",
-                           verbatimTextOutput("test"),
+                           #verbatimTextOutput("test"),
                            uiOutput("viz_view")
                        )
                   )
@@ -237,7 +237,7 @@ server <- function(input, output, session) {
         if (input$var_viz == "departamento") {
           if (dic$id[i] == "deptosId") input_change <- NULL
         }
-        if (dic$id[i] == "fechaId") input_change <- NULL
+        #if (dic$id[i] == "fechaId") input_change <- NULL
 
         if (dic$id[i] == "alertaId") {
           if (input_change) {
@@ -254,7 +254,7 @@ server <- function(input, output, session) {
           }
         }
         if (!is.null(input_change)) {
-          tx <- paste0("<b>", dic$label[i], ": </b>", input_change, "</br>", collapse = "")
+          tx <- paste0("<b>", dic$label[i], ": </b>", paste0(input_change, collapse = ","), "</br>", collapse = "")
         }
         tx
       }), collapse = ""))
@@ -317,16 +317,22 @@ server <- function(input, output, session) {
     req(data_filter())
     if (nrow(data_filter()) == 0) return()
     df <- data_filter()
+    var_viz <- input$var_viz
     if (input$var_viz == "anio_mes_agresion") {
+      var_viz <- "anio_agresion"
       df <- df |> drop_na(anio_mes_agresion)
       df$anio_mes_agresion <- as.character(df$anio_mes_agresion)
+      df$anio_agresion <- as.character(df$anio_agresion)
+      if (length(unique(df$anio_agresion)) < 3) {
+        var_viz <- "anio_mes_agresion"
+      }
     }
     if (input$var_viz == "tipo_agresion") {
       df <- df |> separate_rows(tipo_agresion, sep = ";")
     }
     df <- dsdataprep::aggregation_data(data = df,
                                        agg = "count",
-                                       group_var = input$var_viz,
+                                       group_var = var_viz,
                                        percentage = TRUE, percentage_name = "porcentaje")
 
     if (input$var_viz == "sucedio_en_internet") {
@@ -348,6 +354,7 @@ server <- function(input, output, session) {
     viz <- c("bar", "treemap", "table")
     if ("departamento" %in% names(data_viz())) viz <- c("map", viz)
     if ("anio_mes_agresion" %in% names(data_viz())) viz <- c("line", "table")
+    if ("anio_agresion" %in% names(data_viz())) viz <- c("line", "table")
     viz
   })
 
@@ -423,7 +430,7 @@ server <- function(input, output, session) {
       if (actual_but$active == "treemap") {
         opts$data_labels_inside <- TRUE
       }
-      if (!"anio_mes_agresion" %in% names(data_viz())) {
+      if (!any(c("anio_mes_agresion", "anio_agresion") %in% names(data_viz()))) {
         opts$bar_orientation <- "hor"
         opts$sort <- "desc"
       }
@@ -587,6 +594,15 @@ server <- function(input, output, session) {
     req(input$var_viz)
     req(data_filter())
     df <-  data_filter()
+    var_viz <- input$var_viz
+    if (input$var_viz == "anio_mes_agresion") {
+      var_viz <- "anio_agresion"
+      if (length(unique(df$anio_agresion)) < 3) {
+        var_viz <- "anio_mes_agresion"
+      }
+    }
+
+
     if (actual_but$active == "map") {
       df$departamento <- toupper(df$departamento)
     }
@@ -595,12 +611,15 @@ server <- function(input, output, session) {
       df <- df[ind_ps,]
     } else {
       df <- df |>
-        dplyr::filter(!!dplyr::sym(input$var_viz) %in% click_info$id)
+        dplyr::filter(!!dplyr::sym(var_viz) %in% click_info$id)
     }
     df
   })
 
-
+# output$test <- renderPrint({
+#   print(input$hcClicked)
+#   print(input$var_viz)
+# })
 
   data_click_bar <- reactive({
     req(click_info$id)
@@ -608,7 +627,7 @@ server <- function(input, output, session) {
     req(data_click())
     if (nrow(data_click()) == 0) return()
     var_viz <- "genero"
-    if (input$var_viz == "genero") var_viz <- "departamento"
+    if (input$var_viz == "genero") var_viz <- c("departamento")
     df <- data_click()
     df <- dsdataprep::aggregation_data(data = df,
                                        agg = "count",
@@ -639,6 +658,7 @@ server <- function(input, output, session) {
                     label_wrap_legend = 100,
                     collapse_rows = TRUE,
                     data_labels_show = TRUE,
+                    bar_graph_type = "stacked",
                     data_labels_align = 'middle',
                     palette_colors = c( "#46B9F3"),
                     title = "Cantidad de violaciones a la libertad de prensa registradas en Colombia por género de la víctima",
@@ -667,61 +687,6 @@ server <- function(input, output, session) {
     hgch_click_one()
   })
 
-  data_click_tree <- reactive({
-    req(click_info$id)
-    req(input$var_viz)
-    req(data_click())
-    if (nrow(data_click()) == 0) return()
-    var_viz <- "cargo"
-    if (input$var_viz == "cargo") var_viz <- "tipo_agresion"
-    df <- data_click()
-    df <- dsdataprep::aggregation_data(data = df,
-                                       agg = "count",
-                                       group_var = var_viz,
-                                       percentage = TRUE,
-                                       percentage_name = "porcentaje")
-    dic <- var_dic() |> filter(id %in% var_viz)
-    df$..labels <- paste0(dic$label, ": ", df[[1]], "<br/>
-                         Conteo: ", df[[2]], " (", round(df[[3]], 2), "%)")
-    df
-  })
-
-  hgch_click_two <- reactive({
-    req(data_click_tree())
-    if (nrow(data_click_tree()) == 0) return()
-    dic <- var_dic() |> filter(id %in% names(data_click_tree())[1])
-    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", dic$label)
-    hgch_treemap_CatNum(data_click_tree(),
-                        collapse_rows = TRUE,
-                        data_labels_show = TRUE,
-                        data_labels_align = 'middle',
-                        data_labels_inside = TRUE,
-                        title = title_viz,
-                        title_size = 10,
-                        palette_colors = c("#FF5100", "#FF9A2D", "#FFD35B", "#46B9F3", "#AAEAFF", "#00B18D", "#004286"))|>
-      hc_exporting(
-        enabled = TRUE,
-        buttons = list(
-          contextButton = list(
-            symbol = 'url(img/down.svg)',
-            symbolX = 18,
-            symbolY = 18,
-            menuItems = c(
-              "downloadSVG",
-              "downloadPDF",
-              "downloadJPEG",
-              "downloadPNG",
-              "viewFullscreen"
-            )
-          )
-        )
-      )
-  })
-
-  output$click_two <- renderHighchart({
-    req(hgch_click_two())
-    hgch_click_two()
-  })
 
   data_click_tree2 <- reactive({
     req(click_info$id)
@@ -729,7 +694,7 @@ server <- function(input, output, session) {
     req(data_click())
     if (nrow(data_click()) == 0) return()
     var_viz <- "alerta_genero"
-    if (input$var_viz == "alerta_genero") var_viz <- "tipo_agresion"
+    if (input$var_viz == "alerta_genero") var_viz <- "presunto_autor"
     df <- data_click()
     df <- dsdataprep::aggregation_data(data = df,
                                        agg = "count",
@@ -746,7 +711,7 @@ server <- function(input, output, session) {
     req(data_click_tree2())
     if (nrow(data_click_tree2()) == 0) return()
     dic <- var_dic() |> filter(id %in% names(data_click_tree2())[1])
-    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", dic$label)
+    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", tolower(dic$label))
 
     hgch_treemap_CatNum(data_click_tree2(),
                         collapse_rows = TRUE,
@@ -786,7 +751,7 @@ server <- function(input, output, session) {
     req(data_click())
     if (nrow(data_click()) == 0) return()
     var_viz <- "sucedio_en_internet"
-    if (input$var_viz == "sucedio_en_internet") var_viz <- "tipo_agresion"
+    if (input$var_viz == "sucedio_en_internet") var_viz <- "presunto_autor"
     df <- data_click()
     df <- dsdataprep::aggregation_data(data = df,
                                        agg = "count",
@@ -803,7 +768,7 @@ server <- function(input, output, session) {
     req(data_click_tree3())
     if (nrow(data_click_tree3()) == 0) return()
     dic <- var_dic() |> filter(id %in% names(data_click_tree3())[1])
-    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", dic$label)
+    title_viz <- paste0("Cantidad de violaciones a la libertad de prensa registradas en Colombia por ", tolower(dic$label))
 
     hgch_treemap_CatNum(data_click_tree3(),
                         collapse_rows = TRUE,
@@ -848,10 +813,9 @@ server <- function(input, output, session) {
 
     div(
       HTML(paste0("<div class = 'title-click'>", dic$label, ": ", click_info$id, "</div>")),
-      highchartOutput("click_one", height = 200),
-      highchartOutput("click_two", height = 200),
-      highchartOutput("click_three", height = 150),
-      highchartOutput("click_four", height = 150)
+      highchartOutput("click_one", height = 250),
+      highchartOutput("click_three", height = 180),
+      highchartOutput("click_four", height = 180)
     )
 
 
