@@ -181,14 +181,11 @@ height: 30px !important;
   margin: 20px 0px;
 }
 
-.leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar {
-  float: right;
-}
+
 
 .map-title {
   padding: 0px 8px !important;
   margin-top: -10% !important;
-  font-family: 'IBM Plex Sans';
   font-size: 15px;
   white-space: normal;
   color: rgb(40, 51, 63);

@@ -425,7 +425,7 @@ server <- function(input, output, session) {
         data_labels_align = 'middle',
         title = title_viz(),
         text_family ='IBM Plex Sans',
-        palette_colors = c("#FF5100", "#FF9A2D", "#FFD35B", "#46B9F3", "#AAEAFF", "#00B18D", "#004286")
+        palette_colors = c("#00379A")
       )
       if (actual_but$active == "treemap") {
         opts$data_labels_inside <- TRUE
@@ -500,9 +500,10 @@ server <- function(input, output, session) {
 
   data_down <- reactive({
     req(data_filter())
+    print(data_filter())
     if (nrow(data_filter()) == 0) return()
     df <- data_filter()
-    df <- df[, c( "presunto_autor", "sucedio_en_internet",
+    df <- df[, c( "fecha_agresion", "presunto_autor", "sucedio_en_internet",
                   "tipo_agresion","departamento", "alerta_genero", "genero")]
     df
   })
